@@ -38,20 +38,25 @@ def verify_citations(response_text: str, retrieved_chunks: List[Dict[str, Any]])
         best_overlap_ratio = 0.0
         
         for chunk in retrieved_chunks:
-            chunk_words = set(chunk["content"].lower().split())
+            chunk_content_lower = chunk["content"].lower()
+            chunk_words = set(chunk_content_lower.split())
             if not chunk_words:
                 continue
                 
-            # Jaccard Kesişim Oranı
+            # 1. Kelime kesişim oranı (Jaccard)
             common_words = words.intersection(chunk_words)
             overlap_ratio = len(common_words) / len(words) if words else 0.0
             
+            # 2. Alt string veya doğrudan içerik eşleşmesi kontrolü
+            if sentence.lower() in chunk_content_lower or chunk_content_lower in sentence.lower():
+                overlap_ratio = max(overlap_ratio, 0.8)
+                
             if overlap_ratio > best_overlap_ratio:
                 best_overlap_ratio = overlap_ratio
                 best_match_chunk = chunk
                 
-        # Eğer cümle kelimelerinin en az %30'u kaynak metinde varsa doğrulanmış alıntı kabul et
-        if best_overlap_ratio >= 0.3 and best_match_chunk:
+        # Eğer cümle kelimelerinin en az %20'si kaynak metinde varsa doğrulanmış alıntı kabul et
+        if best_overlap_ratio >= 0.20 and best_match_chunk:
             total_matches += 1
             source_info = f"{best_match_chunk['source_file']} (Sayfa {best_match_chunk['page_number']})"
             matched_sources.add(source_info)

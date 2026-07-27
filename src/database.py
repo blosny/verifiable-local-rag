@@ -67,6 +67,9 @@ def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
     İki liste/vektör arasındaki Kosinüs Benzerliğini (Cosine Similarity) hesaplar.
     Sonuç 0.0 (tamamen farklı) ile 1.0 (birebir aynı anlama gelen) arasındadır.
     """
+    if len(vec1) != len(vec2):
+        return 0.0
+
     v1 = np.array(vec1, dtype=np.float32)
     v2 = np.array(vec2, dtype=np.float32)
     
@@ -97,6 +100,9 @@ def search_similar_chunks(query_embedding: List[float], top_k: int = 3, db_path:
         # JSON string'i tekrar Python listesine çeviriyoruz
         chunk_vector = json.loads(embedding_json)
         
+        if len(query_embedding) != len(chunk_vector):
+            continue
+            
         score = cosine_similarity(query_embedding, chunk_vector)
         
         results.append({

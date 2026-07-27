@@ -1,4 +1,5 @@
 foundry-local-sdk
 streamlit
 pypdf
+pdfplumber
 numpy
