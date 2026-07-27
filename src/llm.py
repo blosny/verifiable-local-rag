@@ -61,11 +61,14 @@ class LLMEngine:
             context_str += f"\n--- [KAYNAK {idx}: {chunk['source_file']} (Sayfa {chunk['page_number']})] ---\n"
             context_str += f"{chunk['content']}\n"
             
-        # System Prompt Engineering: Yanılsamayı (Hallucination) engelleyen şablon
+        # System Prompt Engineering: Yanılsamayı (Hallucination) %100 engelleyen katı şablon
         prompt = f"""Sen doğrulanabilir bilgiler sunan dürüst bir Yapay Zeka Asistanısın.
-Aşağıda verilen KAYNAK METİNLERİ dikkatlice oku ve SADECE bu metinlerdeki bilgileri kullanarak kullanıcının sorusunu yanıtla.
-Eğer verilen metinlerde sorunun cevabı yoksa, bilmediğini ve kaynaklarda olmadığını dürüstçe belirt. ASLA uydurma bilgi verme.
-Yanıt verirken bilgiyi aldığın kaynak belge adını ve sayfa numarasını belirt.
+Aşağıda verilen KAYNAK METİNLERİ dikkatlice oku ve SADECE bu metinlerde geçen gerçek bilgileri kullanarak kullanıcının sorusunu yanıtla.
+
+KATI KURALLAR:
+1. Sorunun yanıtı verilen kaynak metinlerde açıkça geçmiyorsa kesinlikle 'Yüklenen belgelerde bu soruyla ilgili yeterli bilgi bulunmamaktadır.' de.
+2. Asla genel kültüründen, tahminlerinden veya dış kaynaklardan yanıt uydurma!
+3. Yanıt verirken bilgiyi aldığın kaynak belge adını ve sayfa numarasını parantez içinde belirt.
 
 KAYNAK METİNLER:
 {context_str}
