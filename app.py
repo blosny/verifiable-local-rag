@@ -11,77 +11,14 @@ from src.retriever import retrieve_smart_chunks
 from src.llm import LLMEngine
 from src.verifier import verify_citations
 
-# 🎨 Ultra Modern Dashboard (Vercel / GitHub Style Minimal Slate Theme)
+# 🏛️ Doğal, Klasik Masaüstü Uygulaması Standart Sayfa Ayarları
 st.set_page_config(
     page_title="Verifiable Local RAG",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Professional CSS Styling
-st.markdown("""
-<style>
-    /* Global Reset & Slate Background */
-    .stApp {
-        background-color: #0b0f19;
-        color: #e2e8f0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    
-    /* Top Header Bar */
-    .header-card {
-        background-color: #111827;
-        border: 1px solid #1e293b;
-        padding: 1.2rem 1.6rem;
-        border-radius: 10px;
-        margin-bottom: 1.5rem;
-    }
-    .header-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #f8fafc;
-        margin: 0;
-    }
-    .header-desc {
-        font-size: 0.85rem;
-        color: #94a3b8;
-        margin-top: 0.2rem;
-    }
-
-    /* Sidebar Clean Layout */
-    [data-testid="stSidebar"] {
-        background-color: #111827;
-        border-right: 1px solid #1e293b;
-    }
-
-    /* File List Clean Badge */
-    .file-badge {
-        background-color: #1e293b;
-        color: #38bdf8;
-        padding: 0.35rem 0.6rem;
-        border-radius: 6px;
-        font-family: monospace;
-        font-size: 0.8rem;
-        margin-bottom: 0.4rem;
-        border: 1px solid #334155;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: block;
-    }
-    
-    /* Custom Metric Display Card */
-    .score-card {
-        background-color: #111827;
-        border: 1px solid #1e293b;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-top: 1rem;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Veritabanı İlklendirme
+# Yerel veritabanı başlatma
 init_db()
 
 @st.cache_resource
@@ -96,14 +33,15 @@ if "messages" not in st.session_state:
 if "uploaded_files" not in st.session_state:
     st.session_state.uploaded_files = []
 
-# --- SIDEBAR (Sol Panel) ---
+# --- SOL PANEL (Sidebar) ---
 with st.sidebar:
-    st.markdown("### Doküman Yönetimi")
-    st.caption("Çevrimdışı Vektör Mağazası")
-    st.markdown("---")
+    st.title("Verifiable Local RAG")
+    st.write("Çevrimdışı Doküman Analizi ve Alıntı Doğrulama")
+    st.divider()
     
+    st.subheader("Doküman Yükleme")
     uploaded_files_batch = st.file_uploader(
-        "PDF / TXT Belgesi Yükleyin", 
+        "PDF veya TXT dosyası ekleyin:", 
         type=["pdf", "txt"],
         accept_multiple_files=True
     )
@@ -118,7 +56,7 @@ with st.sidebar:
                 f.write(file.getbuffer())
                 
             if file.name not in st.session_state.uploaded_files:
-                with st.spinner(f"'{file.name}' ayrıştırılıyor..."):
+                with st.spinner(f"İşleniyor: {file.name}..."):
                     chunks = process_document(file_path)
                     for chunk in chunks:
                         chunk["embedding"] = llm_engine.generate_embedding(chunk["content"])
@@ -126,59 +64,56 @@ with st.sidebar:
                     st.session_state.uploaded_files.append(file.name)
                     st.toast(f"Yüklendi: {file.name}")
                     
-    st.markdown("---")
+    st.divider()
+    st.subheader("Arama Kapsamı")
     doc_options = ["Tüm Belgeler"] + st.session_state.uploaded_files
     selected_doc_filter = st.selectbox(
-        "Arama Filtresi:",
+        "Aranacak Belge:",
         options=doc_options,
         index=0
     )
     
-    st.markdown("---")
-    st.markdown("##### İndekslenen Belgeler")
+    st.divider()
+    st.subheader("Yüklü Belgeler")
     if st.session_state.uploaded_files:
         for f in st.session_state.uploaded_files:
-            st.markdown(f'<div class="file-badge" title="{f}">{f}</div>', unsafe_allow_html=True)
+            st.text(f"• {f}")
     else:
-        st.info("İndekslenen belge yok.")
+        st.write("Henüz belge yüklenmedi.")
         
-    st.markdown("---")
-    if st.button("Veritabanını Sıfırla", use_container_width=True):
+    st.divider()
+    if st.button("Veritabanını ve Sohbeti Sıfırla", use_container_width=True):
         clear_db()
         st.session_state.uploaded_files = []
         st.session_state.messages = []
         st.rerun()
 
-# --- ANA EKRAN HEADER ---
-st.markdown("""
-<div class="header-card">
-    <div class="header-title">Verifiable Local RAG Dashboard</div>
-    <div class="header-desc">Yerel veritabanınızdaki belgeler üzerinden %100 doğrulanabilir ve kaynak alıntılı analiz üretir.</div>
-</div>
-""", unsafe_allow_html=True)
+# --- ANA EKRAN ---
+st.header("Doğrulanabilir Doküman Asistanı")
+st.write("Yüklenen belgeler üzerinden kaynak alıntılı ve doğrulanmış bilgi sunar.")
 
-tab1, tab2 = st.tabs(["Sohbet & Alıntı Paneli", "Vektör Mağazası İnceleyici"])
+tab1, tab2 = st.tabs(["Sohbet ve Alıntılar", "Veritabanı İnceleyici"])
 
 with tab1:
-    # Geçmiş Sohbet Gösterimi
+    # Sohbet Geçmişi
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+            st.write(msg["content"])
             if "verification" in msg and msg["verification"]:
                 v = msg["verification"]
-                st.markdown("---")
-                st.caption(f"Doğrulama Skoru: **%{v['confidence_score']}** | Durum: **{v['verification_status']}**")
+                st.divider()
+                st.caption(f"Doğrulama Skoru: %{v['confidence_score']} | Durum: {v['verification_status']}")
                 if v["verified_citations"]:
-                    st.caption("Doğrulanan Kaynaklar: " + ", ".join([f"`{c}`" for c in v["verified_citations"]]))
+                    st.caption("Kaynaklar: " + ", ".join([f"{c}" for c in v["verified_citations"]]))
 
-    # Soru Giriş Barı
-    if prompt := st.chat_input("Belgeleriniz hakkında bir soru yazın..."):
+    # Soru Girişi
+    if prompt := st.chat_input("Sorunuzu yazın..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
-            st.markdown(prompt)
+            st.write(prompt)
             
         with st.chat_message("assistant"):
-            with st.spinner("Vektör araması ve doğrulama yapılıyor..."):
+            with st.spinner("Yanıt ve alıntılar hazırlanıyor..."):
                 query_vec = llm_engine.generate_embedding(prompt)
                 
                 retrieved_chunks = retrieve_smart_chunks(
@@ -191,20 +126,20 @@ with tab1:
                 response_text = llm_engine.generate_answer(prompt, retrieved_chunks)
                 verification = verify_citations(response_text, retrieved_chunks)
                 
-                st.markdown(response_text)
+                st.write(response_text)
                 
-                # Doğrulama Skor Paneli
-                st.markdown("---")
-                c1, c2 = st.columns(2)
-                with c1:
+                # Panel
+                st.divider()
+                col1, col2 = st.columns(2)
+                with col1:
                     st.metric("Alıntı Doğruluk Skoru", f"%{verification['confidence_score']}")
-                with c2:
+                with col2:
                     st.metric("Doğrulama Durumu", verification['verification_status'])
                     
                 if verification["verified_citations"]:
-                    st.markdown("**Kaynak Alıntıları:**")
+                    st.write("**Doğrulanan Kaynaklar:**")
                     for cit in verification["verified_citations"]:
-                        st.info(f"📄 {cit}")
+                        st.info(f"Kaynak: {cit}")
 
         st.session_state.messages.append({
             "role": "assistant",
@@ -213,10 +148,10 @@ with tab1:
         })
 
 with tab2:
-    st.subheader("SQLite Vektör Mağazası (Debug)")
-    st.caption("Arama mekanizmasını şeffaf şekilde inceleyin.")
+    st.subheader("SQLite Vektör Mağazası")
+    st.write("Veritabanı kayıtlarını inceleyin.")
     
-    debug_query = st.text_input("Vektör simülasyonu için kelime girin:")
+    debug_query = st.text_input("Arama simülasyonu için kelime girin:")
     if debug_query:
         q_vec = llm_engine.generate_embedding(debug_query)
         results = retrieve_smart_chunks(
@@ -226,7 +161,7 @@ with tab2:
             filter_source=selected_doc_filter
         )
         
-        st.write(f"**'{debug_query}' için getirilen en alakalı 5 parça:**")
+        st.write(f"'{debug_query}' için en alakalı 5 parça:")
         for res in results:
             with st.expander(f"{res['source_file']} (Sayfa {res['page_number']}) - Skor: %{round(res['similarity_score']*100, 2)}"):
                 st.write(res["content"])
