@@ -73,4 +73,21 @@ def retrieve_smart_chunks(
         
     # En yüksek skordan en düşüğe sırala
     results.sort(key=lambda x: x["similarity_score"], reverse=True)
-    return results[:top_k]
+    
+    # KELİME ÇAKIŞMA KONTROLÜ (Alakasız Sorgu Filtresi)
+    # Eğer sorulan sorunun ana kelimelerinden hiçbiri parçada yoksa skoru sıfırla
+    filtered_results = []
+    for res in results[:top_k]:
+        content_words = set(res["content"].lower().split())
+        meaningful_query_words = {w for w in query_words if len(w) > 3}
+        
+        # Eğer anlamlı soru kelimeleri parçada hiç geçmiyorsa
+        if meaningful_query_words and not meaningful_query_words.intersection(content_words):
+            res["similarity_score"] = 0.0
+            res["is_relevant"] = False
+        else:
+            res["is_relevant"] = True
+            
+        filtered_results.append(res)
+        
+    return filtered_results

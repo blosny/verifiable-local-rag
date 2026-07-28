@@ -36,7 +36,14 @@ if "uploaded_files" not in st.session_state:
 # --- SOL PANEL (Sidebar) ---
 with st.sidebar:
     st.title("Verifiable Local RAG")
-    st.write("Çevrimdışı Doküman Analizi ve Alıntı Doğrulama")
+    st.caption("Çevrimdışı Doküman Analizi ve Alıntı Doğrulama")
+    
+    # Active Model Engine Status Indicator
+    if getattr(llm_engine, "is_foundry_active", False):
+        st.success("🟢 Foundry Local SDK Aktif (Yerel LLM Modu)", icon="⚡")
+    else:
+        st.warning("🟠 Fallback Vektör Motoru Aktif (Deterministik Mod)", icon="⚠️")
+        
     st.divider()
     
     st.subheader("Doküman Yükleme")
@@ -86,6 +93,7 @@ with st.sidebar:
         clear_db()
         st.session_state.uploaded_files = []
         st.session_state.messages = []
+        st.toast("Veritabanı ve sohbet geçmişi sıfırlandı!")
         st.rerun()
 
 # --- ANA EKRAN ---
@@ -126,7 +134,11 @@ with tab1:
                 response_text = llm_engine.generate_answer(prompt, retrieved_chunks)
                 verification = verify_citations(response_text, retrieved_chunks)
                 
-                st.write(response_text)
+                # Eğer bilgi belgede bulunamadıysa rastgele metin gösterme
+                if verification["confidence_score"] == 0.0 or "bulunmamaktadır" in response_text.lower():
+                    st.warning("Yüklenen belgelerde bu soruyla ilgili yeterli bilgi bulunamadı.")
+                else:
+                    st.write(response_text)
                 
                 # Panel
                 st.divider()
@@ -143,7 +155,7 @@ with tab1:
 
         st.session_state.messages.append({
             "role": "assistant",
-            "content": response_text,
+            "content": "Yüklenen belgelerde bu soruyla ilgili yeterli bilgi bulunamadı." if verification["confidence_score"] == 0.0 else response_text,
             "verification": verification
         })
 
