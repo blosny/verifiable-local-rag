@@ -82,16 +82,18 @@ class LLMEngine:
             
         context_str = ""
         for idx, chunk in enumerate(context_chunks, 1):
+            # Çirkin || boru işaretlerini temizle
+            clean_content = chunk['content'].replace("|||---|---|---|---|", "").replace("||", " ").strip()
             context_str += f"\n--- [KAYNAK {idx}: {chunk['source_file']} (Sayfa {chunk['page_number']})] ---\n"
-            context_str += f"{chunk['content']}\n"
+            context_str += f"{clean_content}\n"
             
         prompt = f"""Sen doğrulanabilir bilgiler sunan dürüst bir Yapay Zeka Asistanısın.
-Aşağıda verilen KAYNAK METİNLERİ dikkatlice oku ve SADECE bu metinlerde geçen gerçek bilgileri kullanarak kullanıcının sorusunu yanıtla.
+Aşağıda verilen KAYNAK METİNLERİ dikkatlice oku ve SADECE bu metinlerde geçen gerçek bilgileri kullanarak kullanıcının sorusunu okunaklı Türkçe cümlelerle yanıtla.
 
 KATI KURALLAR:
 1. Sorunun yanıtı verilen kaynak metinlerde açıkça geçmiyorsa kesinlikle 'Yüklenen belgelerde bu soruyla ilgili yeterli bilgi bulunmamaktadır.' de.
-2. Asla genel kültüründen, tahminlerinden veya dış kaynaklardan yanıt uydurma!
-3. Yanıt verirken bilgiyi aldığın kaynak belge adını ve sayfa numarasını parantez içinde belirt.
+2. Metindeki ham boru '|' işaretlerini ve tablo taslaklarını olduğu gibi kopyalama, okunaklı cümlelere çevir!
+3. Asla genel kültüründen, tahminlerinden veya dış kaynaklardan yanıt uydurma!
 
 KAYNAK METİNLER:
 {context_str}
@@ -105,12 +107,17 @@ YANIT:"""
             try:
                 chat_client = self.foundry_model.get_chat_client()
                 response = chat_client.create(
-                    messages=[{"role": "user", "content": prompt}]
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0
                 )
-                return response.choices[0].message.content
+                ans = response.choices[0].message.content
+                # Yanıttaki çirkin boru sembollerini temizle
+                ans = ans.replace("|||---|---|---|---|", "").replace("|||", "").replace("||", "")
+                return ans
             except Exception as e:
                 print(f"Foundry Local LLM yanıt hatası: {e}")
 
         # Fallback Yanıt Oluşturucu
         top_chunk = context_chunks[0]
-        return f"Belgelerde bulunan bilgilere göre: {top_chunk['content']}\n\n(Kaynak: {top_chunk['source_file']}, Sayfa {top_chunk['page_number']})"
+        clean_top = top_chunk['content'].replace("|||---|---|---|---|", "").replace("||", " ").strip()
+        return f"Belgelerde bulunan bilgilere göre: {clean_top}\n\n(Kaynak: {top_chunk['source_file']}, Sayfa {top_chunk['page_number']})"

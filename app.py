@@ -18,6 +18,23 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Sol paneli genişleten ve alt satıra kırmayan Özel CSS
+st.markdown("""
+    <style>
+        [data-testid="stSidebar"] {
+            min-width: 340px !important;
+            max-width: 400px !important;
+        }
+        .uploaded-file-item {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            padding: 4px 0;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # Yerel veritabanı başlatma
 init_db()
 
@@ -40,7 +57,7 @@ with st.sidebar:
     
     # Active Model Engine Status Indicator
     if getattr(llm_engine, "is_foundry_active", False):
-        st.success("🟢 Foundry Local SDK Aktif (Yerel LLM Modu)", icon="⚡")
+        st.success("🟢 Foundry Local SDK Aktif (Yerel LLM Modu)")
     else:
         st.warning("🟠 Fallback Vektör Motoru Aktif (Deterministik Mod)", icon="⚠️")
         
@@ -83,10 +100,10 @@ with st.sidebar:
     st.divider()
     st.subheader("Yüklü Belgeler")
     if st.session_state.uploaded_files:
-        for f in st.session_state.uploaded_files:
-            st.text(f"• {f}")
+        for idx, f in enumerate(st.session_state.uploaded_files, 1):
+            st.markdown(f'<div class="uploaded-file-item" title="{f}">📄 <b>{idx}.</b> {f}</div>', unsafe_allow_html=True)
     else:
-        st.write("Henüz belge yüklenmedi.")
+        st.caption("Henüz belge yüklenmedi.")
         
     st.divider()
     if st.button("Veritabanını ve Sohbeti Sıfırla", use_container_width=True):
@@ -103,10 +120,10 @@ st.write("Yüklenen belgeler üzerinden kaynak alıntılı ve doğrulanmış bil
 tab1, tab2 = st.tabs(["Sohbet ve Alıntılar", "Veritabanı İnceleyici"])
 
 with tab1:
-    # Sohbet Geçmişi
+    # 1. Önce Sohbet Geçmişini Render Et
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
-            st.write(msg["content"])
+            st.markdown(msg["content"])
             if "verification" in msg and msg["verification"]:
                 v = msg["verification"]
                 st.divider()
@@ -114,7 +131,7 @@ with tab1:
                 if v["verified_citations"]:
                     st.caption("Kaynaklar: " + ", ".join([f"{c}" for c in v["verified_citations"]]))
 
-    # Soru Girişi
+    # 2. Soru Girişi Kutusunu En Alta Sabitle
     if prompt := st.chat_input("Sorunuzu yazın..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -134,11 +151,13 @@ with tab1:
                 response_text = llm_engine.generate_answer(prompt, retrieved_chunks)
                 verification = verify_citations(response_text, retrieved_chunks)
                 
-                # Eğer bilgi belgede bulunamadıysa rastgele metin gösterme
+                # Çirkin || boru sembollerini temizle
+                cleaned_disp = response_text.replace("|||---|---|---|---|", "").replace("|||", "").replace("||", "")
+                
                 if verification["confidence_score"] == 0.0 or "bulunmamaktadır" in response_text.lower():
                     st.warning("Yüklenen belgelerde bu soruyla ilgili yeterli bilgi bulunamadı.")
                 else:
-                    st.write(response_text)
+                    st.markdown(cleaned_disp)
                 
                 # Panel
                 st.divider()
@@ -155,7 +174,7 @@ with tab1:
 
         st.session_state.messages.append({
             "role": "assistant",
-            "content": "Yüklenen belgelerde bu soruyla ilgili yeterli bilgi bulunamadı." if verification["confidence_score"] == 0.0 else response_text,
+            "content": "Yüklenen belgelerde bu soruyla ilgili yeterli bilgi bulunamadı." if verification["confidence_score"] == 0.0 else cleaned_disp,
             "verification": verification
         })
 
