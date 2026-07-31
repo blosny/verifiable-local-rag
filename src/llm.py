@@ -106,9 +106,8 @@ YANIT:"""
         if self.is_foundry_active and self.foundry_model:
             try:
                 chat_client = self.foundry_model.get_chat_client()
-                response = chat_client.create(
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.0
+                response = chat_client.complete_chat(
+                    messages=[{"role": "user", "content": prompt}]
                 )
                 ans = response.choices[0].message.content
                 # Yanıttaki çirkin boru sembollerini temizle
