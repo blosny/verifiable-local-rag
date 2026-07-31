@@ -1,75 +1,105 @@
-# Verifiable Local RAG
+# Verifiable Local RAG (Offline Document QA & Fact-Checker)
 
-> Offline, Doğrulanabilir ve Alıntı Destekli Yerel RAG (Retrieval-Augmented Generation) Platformu.
-> Microsoft Foundry Local SDK altyapısı kullanılarak geliştirilmiştir.
+An Offline, Hallucination-Free Retrieval-Augmented Generation (RAG) platform featuring Sentence-Level Fact-Checking, Deterministic Fallback Vector Engine, and Page-Aware Citation Verification. Built with Python, Streamlit, Microsoft Foundry Local SDK, and SQLite.
 
 ---
 
-## 🏛️ Sistem Mimarisi
+## Key Features
 
-```text
-+-----------------------------------------------------------------------------------+
-|                                 1. ARAYÜZ (UI)                                    |
-|                       (Streamlit - Doküman Analiz Dashboard)                      |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|                              2. VERİ İŞLEME PİPELİNE                              |
-|  - PDF / TXT Okuyucu (pdfplumber ile Tablo Ayrıştırma)                             |
-|  - Metin Parçalama (Page-Aware Overlapping Chunking)                              |
-|  - Vektör Motoru (Foundry Local SDK - 384D Embeddings)                            |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|                            3. VEKTÖR VERİTABANI KATMANI                           |
-|  - SQLite DB (Metin + Sayfa Metadata + JSON Vektör Dizileri)                      |
-|  - Akıllı Getirici (Smart Retriever: Document Score Boosting)                      |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-                                          v
-+-----------------------------------------------------------------------------------+
-|                        4. LLM VE ALINTI DOĞRULAMA MOTORU                          |
-|  - Foundry Local LLM Runtime (Phi-3.5-mini / Qwen-2.5)                             |
-|  - Fact-Checker Verifier (Cümle Düzeyinde Alıntı ve Doğrulama Skoru)              |
-+-----------------------------------------------------------------------------------+
+- Microsoft Foundry Local SDK Integration: Runs local LLMs (Qwen2.5-0.5B / Phi-4) fully offline without external API dependencies.
+- Fault-Tolerant Deterministic Fallback Engine: Features a custom hash-based vector engine that ensures application continuity even if SDK runtime is absent.
+- Zero-Hallucination Fact-Checker: Evaluates model responses sentence-by-sentence against source chunks using Jaccard word-overlap matching (0.0% - 100.0% confidence score).
+- Query Relevance Filter: Prevents false positive citations by verifying meaningful keyword intersections.
+- Markdown Table Parsing (pdfplumber): Extracts tabular data from PDFs as Markdown matrices to preserve numerical context.
+- Dual-Language UI (TR / EN): Interactive Streamlit interface with instant language switching.
+
+---
+
+## System Architecture
+
+```
+[PDF / TXT Document]
+        │
+        ▼
+[Parser & Table Extractor] ── (pdfplumber / Markdown Table Matrix)
+        │
+        ▼
+[Chunker & Overlap Engine] ── (Page-Aware Metadata)
+        │
+        ▼
+[Vector Embedding] ────────── (Microsoft Foundry SDK / Fallback Hash 384D)
+        │
+        ▼
+[SQLite Vector Store] ─────── (JSON Serialized Vector Storage)
+        │
+        ▼
+[Smart Retriever] ─────────── (Query Relevance Check + Cosine Similarity)
+        │
+        ▼
+[Local LLM (Qwen2.5)] ─────── (Strict Zero-Hallucination System Prompt)
+        │
+        ▼
+[Fact-Checker Verifier] ───── (Sentence-Level Citation Matching & Scoring)
 ```
 
 ---
 
-## 🚀 Öne Çıkan Özellikler
+## Quick Start
 
-1. **%100 Çevrimdışı (Offline) Güvenlik:** Verileriniz internete çıkmaz, tüm vektörleştirmeler ve LLM yanıtları yerel bilgisayarda çalışır.
-2. **Uydurmasız Yanıt Garantisi (Strict No-Hallucination):** Model sadece yüklenen belgelerdeki verilere göre yanıt verir.
-3. **Cümle Düzeyinde Alıntı Doğrulama:** Üretilen her yanıtın belgedeki hangi sayfadan alındığı doğrulanır ve dürüstçe %0 - %100 Doğruluk Skoru verilir.
-4. **PDF Tablo & Sayısal Veri Desteği (`pdfplumber`):** Tabloları hücre matrisi olarak okur ve LLM'in anlayacağı Markdown tablosuna çevirir.
-5. **Akıllı Çoklu Doküman Filtreleme:** Sorgudaki ipuçlarını analiz ederek ilgili dokümana bonus benzerlik skoru verir.
+### 1. Prerequisites
+- Python 3.10 or higher.
+- pip package manager.
 
----
+### 2. Installation
 
-## 💻 Kurulum ve Çalıştırma
+Clone the repository and install required dependencies:
 
-### 1. Gereksinimleri Yükleyin
 ```bash
+git clone https://github.com/blosny/verifiable-local-rag.git
+cd verifiable-local-rag
 pip install -r requirements.txt
 ```
 
-### 2. Uygulamayı Başlatın
+### 3. Run Application
+
+Launch the Streamlit dashboard:
+
 ```bash
 streamlit run app.py
 ```
 
+The web UI will open automatically at http://localhost:8501.
+
 ---
 
-## 🧪 Testleri Çalıştırma
+## Testing & Verification
 
-Tüm birim (unit) testleri çalıştırmak için:
+Run the automated offline test suite covering target document retrieval, table extraction, and hallucination checks:
 
 ```bash
-python tests/test_database.py
-python tests/test_ingest.py
-python tests/test_llm.py
-python tests/test_verifier.py
-python tests/test_retriever.py
+python -m notes.test_suite
 ```
+
+---
+
+## Project Structure
+
+```
+verifiable-local-rag/
+├── app.py                  # Streamlit Web Application (i18n TR/EN UI)
+├── src/
+│   ├── database.py         # SQLite Vector Store & Cosine Similarity
+│   ├── ingest.py           # PDF/TXT Parser & Markdown Table Extractor
+│   ├── retriever.py        # Smart Retriever & Query Relevance Filter
+│   ├── llm.py              # Microsoft Foundry Local SDK Client & Fallback Engine
+│   └── verifier.py         # Sentence-Level Jaccard Fact-Checker
+├── data/                   # Sample PDF Documents
+├── notes/                  # Test Suites & Engineering Decision Logs
+└── requirements.txt        # Python Dependencies
+```
+
+---
+
+## License
+
+Distributed under the MIT License.
